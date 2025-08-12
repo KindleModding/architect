@@ -13,19 +13,6 @@
 #define Elf_Shdr Elf64_Shdr
 #endif
 
-char* getString(char* string_table, int index)
-{
-    int i = 0;
-    int offset = 0;
-    while (i < index)
-    {
-        offset += strlen(string_table) + 1;
-        i++;
-    }
-
-    return &string_table[offset];
-}
-
 int main(int argc, char* argv[])
 {
     if (argc == 0)
@@ -35,7 +22,7 @@ int main(int argc, char* argv[])
     }
 
     // Open this file for reading
-    FILE* self = fopen(argv[0], "r");
+    FILE* self = fopen(argv[0], "rb");
     Elf_Ehdr elfHeader;
     fread(&elfHeader, sizeof(elfHeader), 1, self);
 
@@ -44,19 +31,19 @@ int main(int argc, char* argv[])
         fprintf(stderr, "No ELF sections found\n");
     }
 
-    fseek(self, elfHeader.e_shoff, SEEK_SET);
-
     Elf_Shdr* section_headers = malloc(elfHeader.e_shnum * elfHeader.e_shentsize);
+    fseek(self, elfHeader.e_shoff, SEEK_SET);
     fread(section_headers, elfHeader.e_shentsize, elfHeader.e_shnum, self);
 
     char* string_table = malloc(section_headers[elfHeader.e_shstrndx].sh_size);
     fseek(self, section_headers[elfHeader.e_shstrndx].sh_offset, SEEK_SET);
-    fread(string_table, elfHeader.e_shentsize, 1, self);
+    fread(string_table, section_headers[elfHeader.e_shstrndx].sh_size, 1, self);
 
     int payload_section = -1;
     for (int i = 0; i < elfHeader.e_shnum; i++)
     {
-        char* section_name = getString(string_table, section_headers[i].sh_name);
+        char* section_name = &string_table[section_headers[i].sh_name];
+        printf("Section %i: (%i) %s\n", i, section_headers[i].sh_name, section_name);
         if (strcmp(section_name, ".payload") == 0)
         {
             payload_section = i;
@@ -75,6 +62,7 @@ int main(int argc, char* argv[])
     const pid_t pid = getpid();
 
     free(section_headers);
+    fclose(self);
 
     return 0;
 }
