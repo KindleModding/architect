@@ -72,10 +72,7 @@ int main(int argc, char* argv[], char *envp[])
 
     free(section_headers);
     fclose(self);
-    //fclose(file); // We keep it open
     
-    const pid_t pid = getpid();
-    // Now execute the program
     char command[64];
     sprintf(command, "/proc/self/fd/%i", fd);
 
