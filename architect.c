@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     int payload_section = -1;
     for (int i = 0; i < elfHeader.e_shnum; i++)
     {
-        char* section_name = &string_table[section_headers[i].sh_name];
+        char* section_name = string_table + section_headers[i].sh_name;
         if (strcmp(section_name, ".payload") == 0)
         {
             payload_section = i;
