@@ -8,4 +8,4 @@ include_dirs = include_directories(
   '.'
 )
 
-executable('architect', sources, include_directories: include_dirs, cpp_args: ['-static', '-static-libgcc', '-static-libstdc++'], link_args: ['-static', '-static-libgcc', '-static-libstdc++'])
+executable('architect', sources, include_directories: include_dirs, c_args: ['-static', '-static-libgcc', '-static-libstdc++'], link_args: ['-static', '-static-libgcc', '-static-libstdc++'])

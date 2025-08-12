@@ -3,17 +3,22 @@
 #include <string.h>
 #include <unistd.h>
 #include <elf.h>
+#include <sys/syscall.h>
+#include <linux/memfd.h>
+#define _GNU_SOURCE         /* See feature_test_macros(7) */
 #include <sys/mman.h>
 
 #if ARCH == 32
 #define Elf_Ehdr Elf32_Ehdr
 #define Elf_Shdr Elf32_Shdr
+#define Elf_Xword Elf32_Xword
 #else
 #define Elf_Ehdr Elf64_Ehdr
 #define Elf_Shdr Elf64_Shdr
+#define Elf_Xword Elf64_Xword
 #endif
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[], char *envp[])
 {
     if (argc == 0)
     {
@@ -56,12 +61,25 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    //mmap()
+    fseek(self, section_headers[payload_section].sh_offset, SEEK_SET); // Just to be sure
+    int fd = syscall(SYS_memfd_create, "payload", MFD_EXEC);
+    FILE* file = fdopen(fd, "wb");
 
-    const pid_t pid = getpid();
+    for (Elf_Xword i=0; i < section_headers[payload_section].sh_size; i++)
+    {
+        fputc(fgetc(self), file);
+    }
 
     free(section_headers);
     fclose(self);
+    //fclose(file); // We keep it open
+    
+    const pid_t pid = getpid();
+    // Now execute the program
+    char command[64];
+    sprintf(command, "/proc/self/fd/%i", fd);
+
+    execve(command, argv, envp);
 
     return 0;
 }
