@@ -22,7 +22,7 @@ int main(int argc, char* argv[], char *envp[])
 {
     if (argc == 0)
     {
-        fprintf(stderr, "Called without 0th argument - HOW?\n");
+        fprintf(stderr, "ERROR: Called improperly.\n");
         return 1;
     }
 
