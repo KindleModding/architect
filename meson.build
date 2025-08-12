@@ -1,7 +1,7 @@
-project('architect', 'cpp', version: 'v1.0.0', default_options: ['cpp_std=c++17'], meson_version: '>=1.1')
+project('architect', 'c', version: 'v1.0.0', meson_version: '>=1.1')
 
 sources = files(
-    'architect.cpp'
+    'architect.c'
 )
 
 include_dirs = include_directories(

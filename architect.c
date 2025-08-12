@@ -1,7 +1,7 @@
-#include <cstring>
-#include <fstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
-#include <cstdio>
 #include <elf.h>
 #include <sys/mman.h>
 
@@ -35,23 +35,23 @@ int main(int argc, char* argv[])
     }
 
     // Open this file for reading
-    std::ifstream self(argv[0]);
+    FILE* self = fopen(argv[0], "r");
     Elf_Ehdr elfHeader;
-    self.read(reinterpret_cast<char*>(&elfHeader), sizeof(elfHeader)); // Look, I `know` this is cursed
+    fread(&elfHeader, sizeof(elfHeader), 1, self);
 
     if (elfHeader.e_shoff == 0 || elfHeader.e_shnum == 0)
     {
         fprintf(stderr, "No ELF sections found\n");
     }
 
-    self.seekg(elfHeader.e_shoff);
+    fseek(self, elfHeader.e_shoff, SEEK_SET);
 
-    Elf_Shdr* section_headers = reinterpret_cast<Elf_Shdr*>(malloc(elfHeader.e_shnum * elfHeader.e_shentsize));
-    self.read(reinterpret_cast<char*>(section_headers), elfHeader.e_shnum * elfHeader.e_shentsize);
+    Elf_Shdr* section_headers = malloc(elfHeader.e_shnum * elfHeader.e_shentsize);
+    fread(section_headers, elfHeader.e_shentsize, elfHeader.e_shnum, self);
 
-    char* string_table = reinterpret_cast<char*>(malloc(section_headers[elfHeader.e_shstrndx].sh_size));
-    self.seekg(section_headers[elfHeader.e_shstrndx].sh_offset);
-    self.read(reinterpret_cast<char*>(string_table), section_headers[elfHeader.e_shstrndx].sh_size);
+    char* string_table = malloc(section_headers[elfHeader.e_shstrndx].sh_size);
+    fseek(self, section_headers[elfHeader.e_shstrndx].sh_offset, SEEK_SET);
+    fread(string_table, elfHeader.e_shentsize, 1, self);
 
     int payload_section = -1;
     for (int i = 0; i < elfHeader.e_shnum; i++)
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    mmap()
+    //mmap()
 
     const pid_t pid = getpid();
 
