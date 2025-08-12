@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
     for (int i = 0; i < elfHeader.e_shnum; i++)
     {
         char* section_name = &string_table[section_headers[i].sh_name];
-        printf("Section %i: (%i) %s\n", i, section_headers[i].sh_name, section_name);
         if (strcmp(section_name, ".payload") == 0)
         {
             payload_section = i;
