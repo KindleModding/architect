@@ -71,6 +71,7 @@ int main(int argc, char* argv[], char *envp[])
     }
 
     free(section_headers);
+    free(string_table);
     fclose(self);
     
     char command[64];
