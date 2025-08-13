@@ -72,7 +72,7 @@ int main(int argc, char* argv[], char *envp[])
 
     // Check our architecture
     int payload_section = sf_payload_section;
-    char* interpreter = "/usr/lib/ld-linux-x86-64.so.2"; //"/lib/ld-linux.so.3";
+    char* interpreter = "/lib/ld-linux.so.3";
     if (access("/lib/ld-linux-armhf.so.3", R_OK) == 0)
     {
         interpreter = "/lib/ld-linux-armhf.so.3";
