@@ -14,13 +14,13 @@
 #include <sys/wait.h>
 
 #if ARCH == 32
-#define Elf_Ehdr Elf32_Ehdr
-#define Elf_Shdr Elf32_Shdr
-#define Elf_Xword Elf32_Xword
+typedef Elf32_Ehdr Elf_Ehdr;
+typedef Elf32_Shdr Elf_Shdr;
+typedef Elf32_Xword Elf_Xword;
 #else
-#define Elf_Ehdr Elf64_Ehdr
-#define Elf_Shdr Elf64_Shdr
-#define Elf_Xword Elf64_Xword
+typedef Elf64_Ehdr Elf_Ehdr;
+typedef Elf64_Shdr Elf_Shdr;
+typedef Elf64_Xword Elf_Xword;
 #endif
 
 int main(int argc, char* argv[], char *envp[])
@@ -83,8 +83,7 @@ int main(int argc, char* argv[], char *envp[])
         }
     }
 
-    char* filepath = malloc(sizeof(char) * 21);
-    memcpy(filepath, "/tmp/architect_XXXXXX", sizeof(char) * 21);
+    char* filepath = strdup("/tmp/architect_XXXXXX");
 
     int fd = mkostemp(filepath, O_EXCL);
     FILE* payload_file = fdopen(fd, "wb");
@@ -122,6 +121,7 @@ int main(int argc, char* argv[], char *envp[])
         default:
             waitpid(pid, &status, 0);
             remove(filepath);
+            free(filepath);
             return status;
             break;
     }
