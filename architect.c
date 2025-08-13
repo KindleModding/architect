@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,8 +7,9 @@
 #include <elf.h>
 #include <sys/syscall.h>
 #include <linux/memfd.h>
-#define _GNU_SOURCE         /* See feature_test_macros(7) */
-#include <sys/mman.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #if ARCH == 32
 #define Elf_Ehdr Elf32_Ehdr
@@ -44,40 +47,65 @@ int main(int argc, char* argv[], char *envp[])
     fseek(self, section_headers[elfHeader.e_shstrndx].sh_offset, SEEK_SET);
     fread(string_table, section_headers[elfHeader.e_shstrndx].sh_size, 1, self);
 
-    int payload_section = -1;
+    int sf_payload_section = -1;
+    int hf_payload_section = -1;
     for (int i = 0; i < elfHeader.e_shnum; i++)
     {
         char* section_name = string_table + section_headers[i].sh_name;
-        if (strcmp(section_name, ".payload") == 0)
+        if (strcmp(section_name, ".sf_payload") == 0)
         {
-            payload_section = i;
-            break;
+            sf_payload_section = i;
+        }
+        if (strcmp(section_name, ".hf_payload") == 0)
+        {
+            hf_payload_section = i;
         }
     }
 
-    if (payload_section == -1)
+    if (sf_payload_section == -1)
     {
-        fprintf(stderr, "No payload section found\n");
+        fprintf(stderr, "No sf_payload section found\n");
         return 1;
     }
 
-    fseek(self, section_headers[payload_section].sh_offset, SEEK_SET); // Just to be sure
-    int fd = syscall(SYS_memfd_create, "payload", MFD_EXEC);
-    FILE* file = fdopen(fd, "wb");
+    // Check our architecture
+    int payload_section = sf_payload_section;
+    char* interpreter = "/lib/ld-linux.so.3";
+    if (access("/lib/ld-linux-armhf.so.3", R_OK) == 0)
+    {
+        interpreter = "/lib/ld-linux-armhf.so.3";
 
+        if (hf_payload_section != -1)
+        {
+            payload_section = hf_payload_section;
+        }
+    }
+
+    char* filename = malloc(sizeof(char) * 21);
+    memcpy(filename, "/tmp/architect_XXXXXX", sizeof(char) * 21);
+
+    int fd = mkostemp(filename, O_EXCL);
+    FILE* payload_file = fdopen(fd, "wb");
+    fchmod(fd, S_IRUSR|S_IWUSR|S_IXUSR|S_IXGRP|S_IXOTH);
+    
+    fseek(self, section_headers[payload_section].sh_offset, SEEK_SET);
     for (Elf_Xword i=0; i < section_headers[payload_section].sh_size; i++)
     {
-        fputc(fgetc(self), file);
+        fputc(fgetc(self), payload_file);
     }
 
     free(section_headers);
     free(string_table);
     fclose(self);
+    fclose(payload_file);
     
-    char command[64];
-    sprintf(command, "/proc/self/fd/%i", fd);
+    char** final_argv = malloc(sizeof(char*) * (argc + 3));
+    final_argv[0] = interpreter;
+    final_argv[1] = filename;
+    memcpy(&final_argv[2], argv, sizeof(char*) * (argc + 1));
+    execve(interpreter, final_argv, envp);
 
-    execve(command, argv, envp);
-
-    return 0;
+    fprintf(stderr, "Fatal error - %i\n", errno);
+    
+    return 1;
 }
