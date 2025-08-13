@@ -101,10 +101,13 @@ int main(int argc, char* argv[], char *envp[])
     fclose(self);
     fclose(payload_file);
     
-    char** final_argv = malloc(sizeof(char*) * (argc + 3));
+    char** final_argv = malloc(sizeof(char*) * (argc - 1 + 4 + 1)); // argv[0] is handled separetely, add the 4 args we need for that, and also we need to NULL-terminate the char* array
     final_argv[0] = interpreter;
-    final_argv[1] = filepath;
-    memcpy(&final_argv[2], argv, sizeof(char*) * (argc + 1));
+    final_argv[1] = "--argv0";
+    final_argv[2] = argv[0];
+    final_argv[3] = filepath;
+    memcpy(&final_argv[4], &argv[1], sizeof(char*) * (argc-1)); // We copy from the 1st element to the last
+    final_argv[argc - 1 + 4] = NULL;
 
     pid_t pid = fork();
     int status;
