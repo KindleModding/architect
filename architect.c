@@ -10,6 +10,8 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #if ARCH == 32
 #define Elf_Ehdr Elf32_Ehdr
@@ -70,7 +72,7 @@ int main(int argc, char* argv[], char *envp[])
 
     // Check our architecture
     int payload_section = sf_payload_section;
-    char* interpreter = "/lib/ld-linux.so.3";
+    char* interpreter = "/usr/lib/ld-linux-x86-64.so.2"; //"/lib/ld-linux.so.3";
     if (access("/lib/ld-linux-armhf.so.3", R_OK) == 0)
     {
         interpreter = "/lib/ld-linux-armhf.so.3";
@@ -81,10 +83,10 @@ int main(int argc, char* argv[], char *envp[])
         }
     }
 
-    char* filename = malloc(sizeof(char) * 21);
-    memcpy(filename, "/tmp/architect_XXXXXX", sizeof(char) * 21);
+    char* filepath = malloc(sizeof(char) * 21);
+    memcpy(filepath, "/tmp/architect_XXXXXX", sizeof(char) * 21);
 
-    int fd = mkostemp(filename, O_EXCL);
+    int fd = mkostemp(filepath, O_EXCL);
     FILE* payload_file = fdopen(fd, "wb");
     fchmod(fd, S_IRUSR|S_IWUSR|S_IXUSR|S_IXGRP|S_IXOTH);
     
@@ -101,11 +103,25 @@ int main(int argc, char* argv[], char *envp[])
     
     char** final_argv = malloc(sizeof(char*) * (argc + 3));
     final_argv[0] = interpreter;
-    final_argv[1] = filename;
+    final_argv[1] = filepath;
     memcpy(&final_argv[2], argv, sizeof(char*) * (argc + 1));
-    execve(interpreter, final_argv, envp);
 
-    fprintf(stderr, "Fatal error - %i\n", errno);
-    
+    pid_t pid = fork();
+    int status;
+    switch (pid)
+    {
+        case -1:
+            fprintf(stderr, "Fork error! (%i)", errno);
+            break;
+        case 0:
+            execve(interpreter, final_argv, envp);
+            break;
+        default:
+            waitpid(pid, &status, 0);
+            remove(filepath);
+            return status;
+            break;
+    }
+
     return 1;
 }
