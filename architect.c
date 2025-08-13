@@ -32,7 +32,7 @@ int main(int argc, char* argv[], char *envp[])
     }
 
     // Open this file for reading
-    FILE* self = fopen(argv[0], "rb");
+    FILE* self = fopen("/proc/self/exe", "rb");
     Elf_Ehdr elfHeader;
     fread(&elfHeader, sizeof(elfHeader), 1, self);
 
